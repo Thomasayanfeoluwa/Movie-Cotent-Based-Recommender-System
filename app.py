@@ -288,7 +288,7 @@ def health():
         return {'status': 'ok'}, 200
     except Exception as e: 
         app.logger.error(f"Health check error: {e}")
-        return {'status': 'ok'}, 200
+        return {'status': 'ok'}, 503
 
 if __name__ == '__main__':
     with app.app_context():
