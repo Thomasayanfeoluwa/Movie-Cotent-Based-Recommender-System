@@ -139,7 +139,22 @@ Your support motivates me to keep improving and adding new features!
 
 **Impact:** Handles thousands of reviews and searches without performance degradation.
 
-### 9. TMDB API Integration with 24-Hour Caching
+### 9. Database Architecture
+**Achievement:** The application uses **Neon PostgreSQL** as its production database and **Render** for application deployment.
+The deployed Flask application connects to the Neon PostgreSQL database through the `DATABASE_URL` environment variable.
+
+GitHub
+   │
+   │ Source Code
+   ▼
+Render
+   │
+   │ DATABASE_URL
+   ▼
+Neon PostgreSQL
+
+
+### 10. TMDB API Integration with 24-Hour Caching
 **Achievement:** Built resilient data fetching system with intelligent caching to optimize performance.
 
 **Technical Implementation:**
@@ -149,7 +164,7 @@ Your support motivates me to keep improving and adding new features!
 
 **Impact:** 3x faster page loads, zero rate limit issues, and improved user retention.
 
-### 10. Data Integrity & Validation Framework
+### 12. Data Integrity & Validation Framework
 **Achievement:** Implemented comprehensive validation system ensuring data consistency across the platform.
 
 **Technical Implementation:**
@@ -215,12 +230,13 @@ This approach transforms raw metadata (director, cast, genres) into intelligent,
 
 - **Backend**: Python, Flask, Gunicorn
 - **Web Scrapping**: BeautifulSoap
-- **Database**: PostgreSQL
 - **Machine Learning**: Scikit-Learn, NumPy, Pandas, FAISS, NLTK
 - **Frontend**: HTML5, CSS3, JavaScript (AJAX), Bootstrap
 - **APIs**: The Movie Database (TMDB) API
 - **Deployment**: Render
-
+- **Production Database:** Neon PostgreSQL
+- **Database ORM:** Flask-SQLAlchemy
+- **Database Migrations:** Flask-Migrate
 ---
 
 ## 💡 Professional Handling: Challenges & Solutions
