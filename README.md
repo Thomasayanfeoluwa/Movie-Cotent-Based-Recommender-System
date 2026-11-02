@@ -15,7 +15,7 @@ https://github.com/user-attachments/assets/64f280a4-f5ae-40dd-a605-2b997cfaf889
 
 ## 🎬 Demo
 <p align="center">
-  <a href="https://movies-recommender-system-kxlg.onrender.com/home">
+  <a href="https://movie-recommender-mu4e.onrender.com/home">
     <img src="https://img.shields.io/badge/LIVE-DEMO-red?style=for-the-badge&logo=render">
   </a>
   <img src="https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python">
