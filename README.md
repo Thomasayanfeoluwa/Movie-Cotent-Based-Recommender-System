@@ -181,9 +181,6 @@ For this project, the score compares transformed metadata vectors. It can rank t
 
 ---
 
-## 🏗️ System Architecture
-<img width="2300" height="2826" alt="movie-recommendation-architecture" src="https://github.com/user-attachments/assets/57ac7461-505b-44a8-935d-d73eb01e157a" />
-
 1.  **Data Collection**:
     - **Wikipedia Movie Lists**: A preprocessing notebook fetches American film-list tables for years 2018 through 2025 from [Wikipedia](https://en.wikipedia.org/wiki/Main_Page).
     - **Kaggle IMDb Dataset**: Downloaded the comprehensive [The Movies Dataset](https://www.kaggle.com/rounakbanik/the-movies-dataset) and [The Movie Dataset](https://www.kaggle.com/datasets/karrrimba/movie-metadatacsv) from Kaggle, which provided:
@@ -282,22 +279,6 @@ The application loads its preprocessed movie data, fitted vectorizer, TruncatedS
 
 ### Recommendations
 <img width="1366" height="733" alt="Screenshot (263)" src="https://github.com/user-attachments/assets/95c5b9c8-ca45-4d0d-826d-fb1ef053a832" />
-
-
-### 🗄️ Database Schema 
-## 📸 Screenshots
-
-### 🎬 Movie Recommendations History
-<img width="1366" height="768" alt="Screenshot (265)" src="https://github.com/user-attachments/assets/67ea7d51-364a-495b-91fa-282261b0fc7c" />
-
-### ⭐ User Reviews with Sentiment Analysis
-<img width="1366" height="768" alt="Screenshot (266)" src="https://github.com/user-attachments/assets/5f4bbadc-5d08-4af4-9b54-cd22d9f9793d" />
-
-### 👤 User Accounts
-<img width="1366" height="768" alt="Screenshot (268)" src="https://github.com/user-attachments/assets/096e4c58-bddf-4f4c-80cc-3a21a85a1a82" />
-
-### 🔍 Search History
-<img width="1366" height="768" alt="Screenshot (267)" src="https://github.com/user-attachments/assets/9811ff8a-c9a2-4896-808a-2dae8774508b" />
 
 ---
 
