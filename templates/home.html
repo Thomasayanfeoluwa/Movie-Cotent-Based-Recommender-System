@@ -27,43 +27,31 @@
   <link rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='streaming.css') }}">
   <script type="text/javascript">
     var films = {{ suggestions| tojson }};
   </script>
 
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+
 </head>
 
-<body id="content" style="font-family: 'Noto Sans JP', sans-serif;">
+<body id="content" class="streaming-home">
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-transparent"
-    style="position: absolute; width: 100%; z-index: 1000;">
-    <a class="navbar-brand" href="{{ url_for('home') }}"
-      style="color: #e50914; font-weight: bold; font-size: 1.5rem; margin-left: 20px;"></a>
+  <nav class="stream-nav">
+    <a class="stream-brand" href="{{ url_for('home') }}" aria-label="TrailerTV home">
+      TRAILER<span>TV</span>
+    </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
       aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse justify-content-end" id="navbarNav" style="margin-right: 20px;">
-      <ul class="navbar-nav">
-        {% if session.user_id %}
-        <li class="nav-item">
-          <span class="nav-link" style="color: white;">Welcome, {{ session.username }}</span>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link btn btn-outline-danger" href="{{ url_for('logout') }}"
-            style="color: white; border-color: #e50914;">Logout</a>
-        </li>
-        {% else %}
-        <li class="nav-item">
-          <a class="nav-link btn btn-primary mr-2" href="#" data-toggle="modal" data-target="#signinModal"
-            style="background-color: #e50914; border: none;">Sign In</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link btn btn-outline-light" href="#" data-toggle="modal" data-target="#signupModal">Sign Up</a>
-        </li>
-        {% endif %}
-      </ul>
+    <div class="stream-nav-actions">
+      <span class="stream-welcome">Welcome, {{ session.username }}</span>
+      <form action="{{ url_for('logout') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="stream-logout">Log out</button>
+      </form>
     </div>
   </nav>
 
@@ -85,221 +73,103 @@
     {% endwith %}
   </div>
 
-  <div id="auth-loader"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;">
-    <img src="{{ url_for('static', filename='sign in.gif') }}" alt="Loading..."
-      style="width: auto; height: auto; max-width: 200px;">
-  </div>
-
-    <center>
-      <h1 style="">TrailerTV + Smart Recommendations</h1>
-    </center>
-    <div class="search-container"
-      style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 30px;">
-      <input type="text" name="movie" class="movie form-control" id="autoComplete" autocomplete="off"
-        placeholder="Enter the Movie Name"
-        style="background-color: #ffffff; border-color: #ffffff; width: 600px; max-width: 90%; color: #181818;"
-        required />
-      <button class="btn btn-primary movie-button"
-        style="background-color: #e50914; border-color: #e50914; width: 120px;" disabled>Enter</button>
-    </div>
-  </div>
-
-  <!-- ============ HOMEPAGE RECOMMENDATIONS (will be hidden during search) ============ -->
-  <div id="homepage-recommendations">
+  <main class="stream-main">
     {% if homepage_movies %}
-    <div class="homepage-recommendations" style="margin-top: 40px; margin-bottom: 40px;">
-      <center>
-        <h3 style="
-            color: transparent;
-            background: linear-gradient(135deg, #e50914 0%, #ff6b6b 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        ">
-            ⭐ POPULAR MOVIES
-        </h3>
-        
-        <h5 style="
-            color: #b3b3b3;
-            font-size: 16px;
-            font-weight: 400;
-            margin-bottom: 30px;
-            letter-spacing: 0.5px;
-        ">
-            Discover top-rated movies handpicked for you
-        </h5>
-      </center>
-      
-      <div class="movie-content">
-        {% for movie in homepage_movies %}
-        <div class="card" style="width: 15rem; cursor: pointer;" 
-             title="{{ movie.title }}" 
-             onclick="searchDefault('{{ movie.title }}')">
-          
-          <div class="imghvr" style="position: relative;">
-            <img class="card-img-top" 
-                 height="360" 
-                 width="240" 
-                 alt="{{ movie.title }} - poster" 
-                 src="{{ movie.poster }}"
-                 style="border-radius: 10px 10px 0 0; object-fit: cover;"
-                 onerror="this.src='https://via.placeholder.com/500x750?text=No+Poster'">
-            
-            <figcaption class="fig" style="
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: rgba(0,0,0,0.6);
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                border-radius: 10px 10px 0 0;">
-              <button class="card-btn btn btn-danger" style="border-radius: 25px; padding: 8px 20px;">
-                <i class="fa fa-play-circle"></i> Play
-              </button>
-            </figcaption>
-          </div>
-          
-          <div class="card-body" style="background-color: #2a2a2a; border-radius: 0 0 10px 10px; padding: 12px;">
-            <h5 class="card-title" style="
-                color: white; 
-                text-align: center; 
-                margin: 0; 
-                font-size: 16px;
-                font-weight: 500;
-                text-transform: capitalize;
-            ">
-              {{ movie.title }}
-            </h5>
-          </div>
+    <section class="stream-hero" aria-labelledby="featured-title">
+      {% if homepage_movies[0].poster %}
+      <img class="stream-hero-art" src="{{ homepage_movies[0].poster }}"
+        alt="" onerror="this.style.display='none'">
+      {% else %}
+      <div class="stream-hero-art stream-hero-placeholder" aria-hidden="true"></div>
+      {% endif %}
+      <div class="stream-hero-content">
+        <p class="stream-kicker">YOUR MOVIE DISCOVERY GUIDE</p>
+        <h1 id="featured-title">{{ homepage_movies[0].title }}</h1>
+        <p>Explore this pick, watch its trailer, and find movies with a similar feel.</p>
+        <button type="button" class="stream-primary" data-movie-title="{{ homepage_movies[0].title }}"
+          {% if not tmdb_configured %}disabled{% endif %}>
+          <span aria-hidden="true">&#9654;</span> Explore this movie
+        </button>
+        <a class="stream-secondary" href="#movie-catalog">Browse picks</a>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="stream-search" aria-labelledby="search-title">
+      <div>
+        <p class="stream-kicker">FIND YOUR NEXT WATCH</p>
+        <h2 id="search-title">Search the movie collection</h2>
+      </div>
+      <div class="search-container">
+        <label class="sr-only" for="autoComplete">Movie title</label>
+        <input type="text" name="movie" class="movie form-control" id="autoComplete" autocomplete="off"
+            placeholder="{{ 'Search by movie title' if tmdb_configured else 'TMDB search is not configured' }}"
+            {% if not tmdb_configured %}disabled{% endif %} required>
+          <button class="movie-button" type="button" disabled>Search</button>
         </div>
+    </section>
+
+    {% if not tmdb_configured %}
+    <p class="stream-config-notice" role="status">
+        Showing movie titles from the local catalogue. Add <code>TMDB_API_KEY</code> to your local
+        <code>.env</code> and restart the app to enable movie search, posters, details, and trailers.
+    </p>
+    {% endif %}
+
+    <section id="homepage-recommendations" class="stream-catalog">
+        {% if homepage_movies %}
+        <div class="catalog-heading" id="movie-catalog">
+          <div>
+            <p class="stream-kicker">{{ "CURATED FOR MOVIE FANS" if tmdb_configured else "LOCAL MOVIE CATALOGUE" }}</p>
+            <h2>{{ "Popular picks" if tmdb_configured else "Movie titles" }}</h2>
+          </div>
+          <span>
+            {% if tmdb_configured %}
+            Choose a title to explore its trailer and recommendations
+            {% else %}
+            Configure TMDB to open movie details and trailers
+            {% endif %}
+          </span>
+        </div>
+        <div class="movie-content stream-rail">
+        {% for movie in homepage_movies %}
+          <button type="button" class="stream-tile" data-movie-title="{{ movie.title }}"
+            {% if not tmdb_configured %}disabled{% endif %}
+            aria-label="Explore {{ movie.title }}">
+          <span class="stream-poster-wrap">
+            {% if movie.poster %}
+            <img class="stream-poster" alt="{{ movie.title }} poster" src="{{ movie.poster }}"
+              loading="lazy" onerror="this.src='https://via.placeholder.com/500x750?text=No+Poster'">
+            {% else %}
+            <span class="stream-poster-fallback" aria-hidden="true">
+              <span>TRAILER<span>TV</span></span>
+            </span>
+            {% endif %}
+            <span class="stream-tile-action"><span aria-hidden="true">&#9654;</span> Explore</span>
+          </span>
+          <span class="stream-tile-title">{{ movie.title }}</span>
+        </button>
         {% endfor %}
       </div>
-    </div>
-    {% endif %}
-  </div>
-  <!-- ============ END HOMEPAGE RECOMMENDATIONS ============ -->
-
-  <style>
-  /* Hover effects */
-  .card:hover .fig {
-      opacity: 1 !important;
-  }
-  
-  .card:hover .card-img-top {
-      filter: brightness(70%);
-      transition: filter 0.3s ease;
-  }
-  
-  .card .fig {
-      pointer-events: none;
-  }
-  
-  .card .card-btn {
-      pointer-events: none;
-  }
-  
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-      .homepage-recommendations h3 {
-          font-size: 24px !important;
-      }
-      
-      .homepage-recommendations h5 {
-          font-size: 14px !important;
-      }
-  }
-  </style>
+      {% else %}
+      <div class="stream-empty">
+        <h2>Movie picks are temporarily unavailable</h2>
+        <p>Use the search above to look up a movie.</p>
+      </div>
+      {% endif %}
+    </section>
+  </main>
 
   <div id="loader" class="text-center">
   </div>
 
   <div class="fail">
     <center>
-      <h3>Sorry! The movie you requested for is not currently available.
-        Please check your spelling or try again with another title"!</h3>
+      <h3>Movie search is currently unavailable.</h3>
     </center>
   </div>
 
-  <div class="results">
-    <center>
-      <h2 id="name" class="text-uppercase"></h2>
-    </center>
-  </div>
-
-  <div class="footer" style="">Made with<span style="font-size:150%;color:red;"> &hearts; </span>by Thomas</div>
-
-  <!-- Bootstrap modal for sign up -->
-  <div class="modal fade" id="signupModal" tabindex="-1" aria-labelledby="signupModalLabel" aria-hidden="true"
-    style="color: black;">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="signupModalLabel">Sign Up</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <form action="{{ url_for('signup') }}" method="post">
-            <div class="form-group">
-              <label for="username">Username</label>
-              <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" class="form-control" id="email" name="email" required>
-            </div>
-            <div class="form-group">
-              <label for="password">Password</label>
-              <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-primary" style="background-color: #e50914; border: none;">Sign
-              Up</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bootstrap modal for sign in -->
-  <div class="modal fade" id="signinModal" tabindex="-1" aria-labelledby="signinModalLabel" aria-hidden="true"
-    style="color: black;">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="signinModalLabel">Sign In</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <form action="{{ url_for('signin') }}" method="post">
-            <div class="form-group">
-              <label for="signinUsername">Username</label>
-              <input type="text" class="form-control" id="signinUsername" name="signinUsername" required>
-            </div>
-            <div class="form-group">
-              <label for="signinPassword">Password</label>
-              <input type="password" class="form-control" id="signinPassword" name="signinPassword" required>
-            </div>
-            <button type="submit" class="btn btn-primary" style="background-color: #e50914; border: none;">Sign
-              In</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div id="recommendation-results" class="results"></div>
 
   <!-- Load jQuery first -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -320,6 +190,7 @@
       
       // Hide when search button is clicked
       $('.movie-button').on('click', function() {
+          $('.stream-hero').hide();
           $homepageRecs.hide();
       });
       
@@ -338,13 +209,18 @@
               $homepageRecs.show();
           }, 100);
       });
+
+      $('.stream-tile, .stream-primary').on('click', function() {
+          searchDefault(this.dataset.movieTitle);
+      });
       
       // Also show on initial page load
       $homepageRecs.show();
   });
 
   function searchDefault(movieTitle) {
-      $('#autoComplete').val(movieTitle);
+      $('#autoComplete').val(movieTitle).trigger('input');
+      $('.movie-button').prop('disabled', false);
       $('.movie-button').click();
   }
   </script>

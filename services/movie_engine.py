@@ -128,6 +128,19 @@ class MovieEngine:
     @classmethod
     def get_homepage_recommendations(cls, count=20):
         df, _, _ = cls.get_df_engine()
+        fallback_movies = (
+            df["movie_title"]
+            .dropna()
+            .drop_duplicates()
+            .head(count)
+            .tolist()
+        )
+
+        if not TMDBService.is_configured():
+            logging.warning(
+                "TMDB_API_KEY is not configured; showing movies from the local catalog."
+            )
+            return fallback_movies
         
         # Get movies with live TMDB data
         candidate_count = count * 2
@@ -136,6 +149,8 @@ class MovieEngine:
         
         for title in all_movies[:20]:  # Limit to first 20 for performance
             enriched = EnrichedMovie(title)
+            if enriched.error:
+                break
             if enriched.vote_average or enriched.popularity:
                 enriched_movies.append(enriched)
         
@@ -166,69 +181,147 @@ class MovieEngine:
             )
             combined.extend(remaining_sorted[:count - len(combined)])
         
+        if not combined:
+            logging.warning(
+                "TMDB returned no homepage movie data; showing movies from the local catalog."
+            )
+            return fallback_movies
+
         return [m.title for m in combined[:count]]
 
     @classmethod
     def get_homepage_posters(cls, movie_titles):
+        if not TMDBService.is_configured():
+            return ["" for _ in movie_titles]
+
         posters = []
         for title in movie_titles:
             try:
                 # Search for the movie on TMDB
                 result = TMDBService.search_movie(title)
+                if result.get("error"):
+                    logging.warning(
+                        "Could not load TMDB posters; using local title cards."
+                    )
+                    return posters + ["" for _ in movie_titles[len(posters):]]
                 if result.get('results') and len(result['results']) > 0:
                     poster_path = result['results'][0].get('poster_path')
                     if poster_path:
                         posters.append(f"https://image.tmdb.org/t/p/w500{poster_path}")
                     else:
-                        posters.append("https://via.placeholder.com/500x750?text=No+Poster")
+                        posters.append("")
                 else:
-                    posters.append("https://via.placeholder.com/500x750?text=No+Poster")
+                    posters.append("")
             except Exception as e:
                 logging.error(f"Error fetching poster for {title}: {e}")
-                posters.append("https://via.placeholder.com/500x750?text=No+Poster")
+                posters.append("")
         
         return posters
 
     @classmethod
-    def recommend_movies(cls, movie_title):
+    def _build_preference_profile(cls, movie_feedback, vectorizer, svd):
+        feedback = [
+            item
+            for item in (movie_feedback or [])
+            if item.preference in (-1, 1) and item.feature_text.strip()
+        ]
+        if not feedback:
+            return None
+
+        feature_texts = [item.feature_text for item in feedback]
+        feedback_vectors = svd.transform(
+            vectorizer.transform(feature_texts)
+        ).astype("float32")
+        faiss.normalize_L2(feedback_vectors)
+
+        liked_vectors = [
+            feedback_vectors[index]
+            for index, item in enumerate(feedback)
+            if item.preference == 1
+        ]
+        disliked_vectors = [
+            feedback_vectors[index]
+            for index, item in enumerate(feedback)
+            if item.preference == -1
+        ]
+
+        if liked_vectors and disliked_vectors:
+            profile = np.mean(liked_vectors, axis=0) - np.mean(
+                disliked_vectors, axis=0
+            )
+        elif liked_vectors:
+            profile = np.mean(liked_vectors, axis=0)
+        else:
+            profile = -np.mean(disliked_vectors, axis=0)
+
+        profile = np.asarray(profile, dtype="float32")
+        magnitude = np.linalg.norm(profile)
+        if magnitude == 0:
+            return None
+        return profile / magnitude
+
+    @classmethod
+    def recommend_movies(cls, movie_title, movie_feedback=None):
         df, svd, faiss_index = cls.get_df_engine()
         vectorizer = cls.get_vectorizer()
 
         m_clean = movie_title.strip().lower()
         lookup_dict = dict(zip(df["movie_title_clean"], df.index))
+        query_index = None
         # CASE 1: New movie 
         if m_clean in lookup_dict:
-            i = lookup_dict[m_clean]
-            movies_text = df.loc[i, "combined_columns"]
+            query_index = lookup_dict[m_clean]
+            movies_text = df.loc[query_index, "combined_columns"]
             tfidf_vec = vectorizer.transform([movies_text])
             query_vector = svd.transform(tfidf_vec).astype("float32")
             faiss.normalize_L2(query_vector)
-            distance, indices = faiss_index.search(query_vector, k=13)
-            neighbor_indices = [idx for idx in indices[0] if idx != i]
-            recommendations = [df["movie_title"].iloc[idx] for idx in neighbor_indices][:12]
-            return recommendations
-            # CASE 2: New movie 
         else:
-            # Search for the movie
             search_result = TMDBService.search_movie(movie_title)
             if not search_result.get('results'):
                 return "Sorry! The movie you requested for is not available."
-            
+
             movie_id = search_result['results'][0]['id']
-            
-            # Extract features
             movie_text = cls._extract_features_from_tmdb(movie_id)
-            
-            # Using vectorizer, SVD, and FAISS 
             tfidf_vec = vectorizer.transform([movie_text])
             query_vector = svd.transform(tfidf_vec).astype("float32")
             faiss.normalize_L2(query_vector)
-            
-            # Get 12 recommendations 
-            distance, indices = faiss_index.search(query_vector, k=13)
-            # Return top 10 recommendations
-            recommendations = [df["movie_title"].iloc[idx] for idx in indices[0]][:12]
-            return recommendations
+
+        preference_profile = cls._build_preference_profile(
+            movie_feedback, vectorizer, svd
+        )
+        candidate_count = 13
+        if preference_profile is not None:
+            candidate_count = min(100, faiss_index.ntotal)
+
+        distances, indices = faiss_index.search(
+            query_vector, k=candidate_count
+        )
+        candidate_indices = [
+            int(index)
+            for index in indices[0]
+            if index >= 0 and index != query_index
+        ]
+        if preference_profile is None:
+            return [df["movie_title"].iloc[index] for index in candidate_indices][
+                :12
+            ]
+
+        candidate_texts = df.iloc[candidate_indices]["combined_columns"].tolist()
+        candidate_vectors = svd.transform(
+            vectorizer.transform(candidate_texts)
+        ).astype("float32")
+        faiss.normalize_L2(candidate_vectors)
+        query_scores = candidate_vectors @ query_vector[0]
+        preference_scores = candidate_vectors @ preference_profile
+        combined_scores = 0.5 * query_scores + 0.5 * preference_scores
+        ranked_positions = sorted(
+            range(len(candidate_indices)),
+            key=lambda position: (-combined_scores[position], position),
+        )
+        return [
+            df["movie_title"].iloc[candidate_indices[position]]
+            for position in ranked_positions[:12]
+        ]
 
     
     @classmethod
@@ -292,12 +385,16 @@ class EnrichedMovie:
         self.live_data = None
         self.vote_average = None
         self.popularity = None
+        self.error = None
         self._fetch_live_data()
     
     def _fetch_live_data(self):
         try:
             from services.tmdb_service import TMDBService
             result = TMDBService.search_movie(self.title)
+            if result.get("error"):
+                self.error = result["error"]
+                return
             if result.get('results') and len(result['results']) > 0:
                 movie_data = result['results'][0]
                 self.live_data = movie_data

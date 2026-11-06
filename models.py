@@ -14,6 +14,7 @@ class User(db.Model):
     reviews = db.relationship('Review', backref='author', lazy=True)
     searches = db.relationship('SearchHistory', backref='user', lazy=True)
     recommendations = db.relationship('RecommendationHistory', backref='user', lazy=True)
+    movie_feedback = db.relationship('MovieFeedback', backref='author', lazy=True)
 
 class Review(db.Model):
     __tablename__ = 'reviews'
@@ -40,4 +41,19 @@ class RecommendationHistory(db.Model):
     searched_movie = db.Column(db.String(200), nullable=False)
     # Storing recommended movies as a simple text string (comma separated) for simplicity
     recommended_movies = db.Column(db.Text, nullable=False) 
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class MovieFeedback(db.Model):
+    __tablename__ = 'movie_feedback'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'tmdb_movie_id', name='uq_movie_feedback_user_tmdb'),
+        db.CheckConstraint('preference IN (-1, 1)', name='ck_movie_feedback_preference'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    tmdb_movie_id = db.Column(db.Integer, nullable=False)
+    movie_title = db.Column(db.String(200), nullable=False)
+    feature_text = db.Column(db.Text, nullable=False)
+    preference = db.Column(db.SmallInteger, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)

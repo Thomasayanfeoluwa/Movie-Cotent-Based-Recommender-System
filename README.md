@@ -1,10 +1,10 @@
 # 🎬 Movie Recommendation System with Trailer and Sentiment Analysis
 
-The primary goal of this project is to design and deploy an intelligent movie recommendation system that enhances user content discovery, improves engagement, and delivers personalized entertainment experiences while maintaining cost-efficient and scalable infrastructure. The project aims to solve the challenge of overwhelming content libraries by leveraging machine learning techniques to recommend relevant movies based on user interests, movie metadata, and similarity analysis. Additionally, the system integrates user interaction features such as reviews and search behavior to support data-driven personalization and continuous improvement of recommendation accuracy. From a business perspective, the solution was built to improve user retention, increase platform engagement time, optimize infrastructure resources through model compression and FAISS indexing, and provide actionable user preference insights that can support strategic decision-making, content acquisition planning, and competitive advantage in digital entertainment platforms.
+This project is a Flask movie-discovery application with content-based recommendations, TMDB movie metadata and trailers, user accounts, and sentiment analysis for reviews submitted through the application. Users must sign in or create an account before accessing movie discovery and recommendations. Signed-in users can like or dislike movies to personalize future content-based recommendations.
 
-## 💼 Business Value & Strategic Impact
+## 💼 System Overview
 
-In today's digital landscape, users face overwhelming content choices—a challenge this project directly addresses through **content-based filtering (CBF)** . Unlike collaborative filtering that relies on other users' behavior, CBF recommends movies based on their actual attributes (director, cast, genres), creating a personalized experience that drives engagement and platform growth.
+The recommender uses **content-based filtering (CBF)**. It compares movie attributes such as director, cast, and genres rather than learning from interactions across users as collaborative filtering does. Explicit likes and dislikes create a per-user content profile that adjusts the ranking of similar candidates. Review-text sentiment is not used as a preference signal, and users without explicit feedback retain the existing ranking.
 
 https://github.com/user-attachments/assets/64f280a4-f5ae-40dd-a605-2b997cfaf889
 
@@ -14,18 +14,18 @@ https://github.com/user-attachments/assets/64f280a4-f5ae-40dd-a605-2b997cfaf889
 </p>
 
 ## 🎬 Demo
+
+**Live demo:** [Open the Render app](https://movie-recommender-mu4e.onrender.com/home). Checked on November 5, 2026: `/home` loads successfully. The currently deployed revision does not yet include the local login page (`/login` returns 404) or personalized feedback changes; these require deployment and the database migration before they are live.
+
 <p align="center">
-  <a href="https://movie-recommender-mu4e.onrender.com/home">
-    <img src="https://img.shields.io/badge/LIVE-DEMO-red?style=for-the-badge&logo=render">
-  </a>
   <img src="https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python">
-  <img src="https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask">
+  <img src="https://img.shields.io/badge/Flask-3.1.3-black?style=for-the-badge&logo=flask">
 </p>
 
 
-*Search any movie, watch trailers, get AI-powered recommendations and sentiment analysis from real reviews!*
+*Search movies, watch available trailers, get content-based recommendations, and view sentiment analysis for reviews submitted through the app.*
 
-A robust, full-stack movie recommendation engine built with **Flask**, **PostgreSQL**, and **Machine Learning**. This system leverages **Cosine Similarity** and **FAISS (Facebook AI Similarity Search)** for high-performance recommendations, alongside real-time **Sentiment Analysis** for user reviews.
+A full-stack movie recommendation application built with **Flask**, **PostgreSQL**, and machine-learning components. The recommender uses **TF-IDF**, **TruncatedSVD**, and a **FAISS exact inner-product index** over normalized movie vectors. The app also classifies the sentiment of submitted reviews.
 
 ---
 
@@ -55,66 +55,63 @@ Your support motivates me to keep improving and adding new features!
 ## 🚀 Key Features & Technical Achievements
 
 ### 1. Advanced Recommendation Engine
-**Achievement:** Built a content-based recommendation system using TF-IDF vectorization and Cosine Similarity to suggest movies based on content metadata.
+**Achievement:** Built a content-based recommendation system using TF-IDF vectorization, TruncatedSVD, and normalized movie-feature vectors.
 
 **Technical Implementation:**
 - **TF-IDF Vectorization**: Converts movie metadata (director, cast, genres) into numerical feature vectors.
-- **Cosine Similarity**: Measures angular distance between vectors to find the most relevant similar movies.
+- **FAISS inner-product search**: Searches normalized vectors, making inner product equivalent to cosine similarity.
 - **Real-Time Inference**: Generates recommendations on-the-fly for any searched movie.
+- **Explicit preference feedback**: Stores per-user likes/dislikes by TMDB movie ID; review text and sentiment are not treated as preference signals.
 
-**Impact:** Users receive highly relevant, personalized movie suggestions based on their search queries.
+When a user has saved likes or dislikes, up to 100 similar candidates are reranked using a 50/50 blend of similarity to the searched movie and similarity to the user's content-preference profile. The profile uses the existing TF-IDF vectorizer, SVD transform, and FAISS candidate index; no model retraining is required. Users with no feedback keep the original ranking.
 
-### 2. High-Performance FAISS Indexing
-**Achievement:** Engineered a scalable similarity search using Facebook AI Similarity Search (FAISS) with TruncatedSVD dimensionality reduction.
+Recommendation quality has not yet been measured against held-out relevance judgments, so no ranking-quality metrics are claimed. The planned evaluation compares baseline and personalized top-12 results on identical user/query cases, with users blindly rating the pooled results; NDCG@10 is the primary metric and Precision@10 is secondary.
+
+### 2. Movie Feature Index
+**Achievement:** Implemented movie-vector search using FAISS and TruncatedSVD dimensionality reduction.
 
 **Technical Implementation:**
-- **TruncatedSVD**: Reduced feature space dimensionality by 90% while preserving semantic relationships.
-- **FAISS Indexing**: Built approximate nearest neighbor indices enabling sub-second query responses.
-- **Resource Optimization**: Successfully deployed on Render's free tier with only 512MB memory.
+- **TruncatedSVD**: Projects TF-IDF movie features into 128 dimensions.
+- **FAISS Indexing**: Uses `IndexFlatIP`, an exact inner-product index over L2-normalized vectors; this is not an approximate-nearest-neighbor index.
 
-**Impact:** 10x faster recommendation generation without sacrificing accuracy, even on constrained infrastructure.
+No benchmark results are currently documented for recommendation latency or memory use.
 
 ### 3. Sentiment Analysis on User Reviews
 **Achievement:** Trained and deployed a real-time sentiment classification model using 50,000 IMDb reviews (25,000 positive + 25,000 negative).
 
 **Technical Implementation:**
 - **Multi-Algorithm Training**: Evaluated Naive Bayes, Logistic Regression, and Linear SVM.
-- **Model Selection**: Deployed the best-performing Linear SVM model for production.
+- **Production Artifact**: The checked-in sentiment artifact is trained with `LinearSVC(C=2, max_iter=2000)`. In the notebook's recorded model comparison, Logistic Regression scored slightly higher than Linear SVM on the reported metrics.
 - **Real-Time Classification**: Analyzes user reviews instantly and displays sentiment with emoji indicators (😊/😠).
 
-**Impact:** Users receive immediate feedback on review sentiment, enhancing engagement and content trustworthiness.
+The sentiment label is a model prediction about review text; it does not establish whether the author personally liked the movie.
 
-### 4. Cold Start Solution for New Users
-**Achievement:** Engineered a hybrid popularity-based recommendation system that provides instant value to first-time visitors.
+### 4. Homepage Movie Discovery
+**Achievement:** The homepage can show movies without requiring a signed-in user's history.
 
 **Technical Implementation:**
 - **Dual-Signal Ranking Strategy**: Independently ranks movies by vote average (critically-acclaimed) and popularity (widely-viewed), then merges top results for balanced homepage diversity.
 - **Real-Time Metadata**: Fetches live vote counts, vote averages, and popularity scores via TMDB API.
-- **Visual Enhancement**: Displays 20 curated movies with posters and play buttons for immediate engagement.
+- **Visual Enhancement**: Displays up to 20 movies with posters and trailer controls when data is available.
 
-**Impact:** Eliminates the cold start problem entirely—new users immediately see high-quality, trending movies upon first visit.
+The homepage can show movie recommendations without user history. It uses TMDB ratings and popularity data where available.
 
-### 5. Real-Time Trailer Integration
-**Achievement:** Built seamless YouTube trailer playback directly within the app for every movie.
-
-**Technical Implementation:**
-- **Smart Key Extraction**: Queries TMDB API for movie videos, intelligently prioritizing official trailers over teasers and behind-the-scenes content.
-- **Elegant Player Design**: Responsive modal with loading indicators, auto-play capability, and smooth transitions.
-- **Caching Strategy**: Trailers cached alongside movie details to minimize redundant API calls.
-
-**Impact:** One-click trailer access for every movie, significantly enhancing content discovery and user engagement.
-
-### 6. Enterprise-Grade Security & Session Management
-**Achievement:** Implemented secure authentication system protecting user data and sessions.
+### 5. TMDB Trailer Integration
+**Achievement:** Supports YouTube trailer playback for movies when TMDB provides a suitable video.
 
 **Technical Implementation:**
-- **Flask Session Authentication**: HTTP-only cookies for secure session storage.
+- **Video Lookup**: Queries TMDB for movie videos and selects a YouTube trailer, then a teaser, when available.
+- **Player**: Uses a responsive modal with loading indicators and playback controls.
+
+### 6. Authentication & Session Management
+**Achievement:** Implemented account sign-up/sign-in, password hashing, CSRF protection, and session logout.
+
+**Technical Implementation:**
+- **Flask Session Authentication**: Uses Flask's signed session cookies.
 - **Password Hashing**: Werkzeug security with generate_password_hash and check_password_hash.
-- **Environment Variables**: Secret keys stored securely in `.env`, never exposed in code.
-- **Route Protection**: Decorator-based access control for sensitive endpoints (reviews, user profiles).
-- **Complete Session Invalidation**: Proper logout with full session cleanup.
-
-**Impact:** Zero security incidents, protected user data, and trusted platform reputation.
+- **Environment Variables**: Requires `FLASK_SECRET_KEY` and database configuration at startup.
+- **CSRF Protection**: Validates tokens on state-changing requests.
+- **Logout**: Clears the session through a CSRF-protected POST route.
 
 ### 7. Professional Frontend UX Design
 **Achievement:** Created intuitive, responsive interface with professional-grade interactions.
@@ -125,19 +122,16 @@ Your support motivates me to keep improving and adding new features!
 - **Autocomplete Suggestions**: Real-time movie suggestions as users type.
 - **Loading States**: Elegant spinners and placeholders during data fetching.
 - **Mobile Responsive**: Fully adaptive design across all device sizes.
+- **Movie Discovery Layout**: A responsive, streaming-service-inspired catalogue with featured movie art and horizontal poster rails. The app provides movie details and trailers, not full-film streaming.
+- **Local Catalogue Fallback**: Homepage movie titles come from the local movie dataset when TMDB is unavailable. Live posters, external movie search, metadata, and trailers still require a valid `TMDB_API_KEY`.
 
-**Impact:** 40% reduction in invalid search requests, improved user satisfaction scores.
-
-### 8. Scalable PostgreSQL Database Architecture
-**Achievement:** Designed optimized database schema supporting analytics and future growth.
+### 8. PostgreSQL Persistence
+**Achievement:** Uses PostgreSQL-compatible storage for user accounts, submitted reviews, explicit movie preferences, search history, and recommendation history.
 
 **Technical Implementation:**
 - **Normalized Schema**: Proper relationships between users, reviews, search history, and recommendations.
-- **Timestamp Logging**: Complete audit trail (`created_at`, `updated_at`) for all user actions.
-- **Data Validation**: Strict constraints at database level ensuring integrity.
-- **Performance Indexing**: Optimized queries for fast lookups on large datasets.
-
-**Impact:** Handles thousands of reviews and searches without performance degradation.
+- **Timestamp Logging**: Review, search, and recommendation records include timestamps.
+- **Data Constraints**: Usernames and email addresses are unique; required model fields are non-null.
 
 ### 9. Database Architecture
 **Achievement:** The application uses **Neon PostgreSQL** as its production database and **Render** for application deployment.
@@ -154,15 +148,13 @@ Render
 Neon PostgreSQL
 
 
-### 10. TMDB API Integration with 24-Hour Caching
-**Achievement:** Built resilient data fetching system with intelligent caching to optimize performance.
+### 10. TMDB API Integration with In-Memory Caching
+**Achievement:** Fetches movie metadata, credits, person details, ratings, popularity, and videos through TMDB endpoints.
 
 **Technical Implementation:**
-- **24-Hour Cache**: In-memory cache stores API responses for a full day, reducing redundant calls by 80%.
-- **Request Batching**: Optimized sequential API calls into efficient batch operations.
-- **Error Boundaries**: Graceful fallbacks when API limits are reached or services are unavailable.
-
-**Impact:** 3x faster page loads, zero rate limit issues, and improved user retention.
+- **24-Hour Cache**: Cached responses are held in process memory with a 24-hour time-to-live.
+- **TMDB Proxy Rate Limit**: The app applies a shared 120-requests-per-minute limit to its TMDB proxy routes; production storage is configured through `RATELIMIT_STORAGE_URI`.
+- **Error Handling**: TMDB service methods log request failures and return an error result.
 
 ### 12. Data Integrity & Validation Framework
 **Achievement:** Implemented comprehensive validation system ensuring data consistency across the platform.
@@ -173,14 +165,11 @@ Neon PostgreSQL
 - **Template Data Binding**: Prevents data corruption during frontend rendering.
 - **Structured Logging**: Complete error tracking for rapid debugging.
 
-**Impact:** 100% review submission success rate with zero data corruption incidents.
-
 ---
 
 ## 🧮 Cosine Similarity
 
-**The Heart of Movie Recommendations**
-Cosine Similarity is a metric that measures how similar two movies are by calculating the cosine of the angle between their feature vectors. In simple terms, it answers the question: "Do these two movies point in the same direction based on their attributes?"
+The recommender creates TF-IDF vectors from movie metadata, projects them with TruncatedSVD, and L2-normalizes the resulting vectors. It searches those vectors with FAISS `IndexFlatIP`; because vectors are normalized, inner product gives the same ranking as cosine similarity.
 
 If two movies have identical features → Angle = 0° → Similarity = 1.0 (perfect match)
 If two movies share no common features → Angle = 90° → Similarity = 0.0 (no relation)
@@ -188,14 +177,7 @@ If two movies share no common features → Angle = 90° → Similarity = 0.0 (no
 <img src="https://github.com/user-attachments/assets/3ded4a7f-f896-4931-84a6-547f63868b8f" width="600" height="400" alt="Cosine Similarity">
 
 
-**Why It's Critical for This Project:**
-Unlike traditional search that looks for exact matches, Cosine Similarity captures semantic relationships between movies. It enables the system to:
-
-- Recognize that Inception and The Dark Knight are similar—even though they have different titles—because they share Christopher Nolan as director and share genres like "Action" and "Sci-Fi"
-- Focus on meaningful patterns rather than exact keyword matches
-- Provide diverse yet relevant recommendations by understanding underlying themes
-
-This approach transforms raw metadata (director, cast, genres) into intelligent, human-like recommendations that feel curated rather than algorithmic.
+For this project, the score compares transformed metadata vectors. It can rank titles with overlapping or related metadata above less similar titles; the base similarity score by itself is not a user-preference or relevance judgment.
 
 ---
 
@@ -203,7 +185,7 @@ This approach transforms raw metadata (director, cast, genres) into intelligent,
 <img width="2300" height="2826" alt="movie-recommendation-architecture" src="https://github.com/user-attachments/assets/57ac7461-505b-44a8-935d-d73eb01e157a" />
 
 1.  **Data Collection**:
-    - **Wikipedia Web Scraping**: Developed a custom scraper to extract lists of American films released between 2018 and 2026 directly from [Wikipedia](https://en.wikipedia.org/wiki/Main_Page), ensuring the database includes recent and upcoming titles not yet available in static datasets.
+    - **Wikipedia Movie Lists**: A preprocessing notebook fetches American film-list tables for years 2018 through 2025 from [Wikipedia](https://en.wikipedia.org/wiki/Main_Page).
     - **Kaggle IMDb Dataset**: Downloaded the comprehensive [The Movies Dataset](https://www.kaggle.com/rounakbanik/the-movies-dataset) and [The Movie Dataset](https://www.kaggle.com/datasets/karrrimba/movie-metadatacsv) from Kaggle, which provided:
       - `movies_metadata.csv` 
       - `credits.csv` 
@@ -214,12 +196,12 @@ This approach transforms raw metadata (director, cast, genres) into intelligent,
 2.  **Model Training (Sentiment Analysis)**:
     - Analyzed and preprocessed **50,000 IMDb reviews** (25,000 positive + 25,000 negative)
     - Trained multiple algorithms: **Multinomial Naive Bayes**, **Logistic Regression**, and **Linear SVC**.
-    - Selected the best-performing model for production to ensure accurate sentiment classification.
+    - The checked-in model comparison reports Logistic Regression slightly above Linear SVM; the checked-in production artifact is trained with `LinearSVC(C=2, max_iter=2000)`.
 
 3.  **Recommendation Engine & Optimization**:
     - **Vectorization**: Used TF-IDF to convert text data into numerical vectors.
     - **Dimensionality Reduction**: Applied **TruncatedSVD** to reduce the feature space. 
-    - **Indexing**: Implemented **FAISS** index to enable fast similarity searches, solving the challenge of deploying large similarity matrices on limited cloud storage.
+    - **Indexing**: Implemented a FAISS `IndexFlatIP` exact inner-product index over normalized movie vectors. No recommender latency benchmark is documented.
 4.  **Trailer Fetching & Playback**:
     - **Backend**: `get_trailer()` method queries TMDB API for movie videos, prioritizes official trailers, and returns YouTube keys.
     - **Frontend**: Dynamic modal with embedded YouTube player, loading states, and auto-play functionality for seamless user experience.
@@ -229,7 +211,7 @@ This approach transforms raw metadata (director, cast, genres) into intelligent,
 ## 🛠️ Tech Stack
 
 - **Backend**: Python, Flask, Gunicorn
-- **Web Scrapping**: BeautifulSoap
+- **Data Preparation**: Jupyter notebooks, pandas, and Requests for dataset processing and Wikipedia movie-list collection
 - **Machine Learning**: Scikit-Learn, NumPy, Pandas, FAISS, NLTK
 - **Frontend**: HTML5, CSS3, JavaScript (AJAX), Bootstrap
 - **APIs**: The Movie Database (TMDB) API
@@ -241,21 +223,11 @@ This approach transforms raw metadata (director, cast, genres) into intelligent,
 
 ## 💡 Professional Handling: Challenges & Solutions
 
-### 1. Deployment Limitation Due to Large Model File Size
-**Problem:** The trained recommendation model (`.pkl`) and similarity matrix exceeded the storage limits of the free-tier Render hosting, causing build failures.
+### 1. Recommendation Index
+The preprocessing notebook fits a 128-component TruncatedSVD transform, L2-normalizes the resulting movie vectors, and builds a FAISS `IndexFlatIP` index. Because the vectors are normalized, inner-product ranking corresponds to cosine-similarity ranking. `IndexFlatIP` performs exact flat search; it is not an approximate-nearest-neighbor index.
 
-**Solution:**
-- Optimized storage by implementing **FAISS** for indexing instead of loading the full similarity matrix.
-- Applied **TruncatedSVD** to reduce dataset dimensionality, creating a lighter, production-optimized model.
-- Successfully deployed the system while maintaining recommendation accuracy.
-
-### 2. Performance Optimization Using FAISS Indexing
-**Problem:** Brute-force cosine similarity on large vectors resulted in slow query responses and high latency.
-
-**Solution:**
-- Replaced brute-force search with **FAISS (Facebook AI Similarity Search)**.
-- Built a vector index enabling approximate nearest neighbor search.
-- Significantly reduced query latency, enabling real-time scalable recommendations.
+### 2. Dataset Preparation
+The checked-in preprocessing notebooks process the movie datasets and collect movie-list tables from Wikipedia. Runtime movie details, credits, posters, and trailer lookups use TMDB. IMDb review-page scraping is not used by the runtime application.
 
 ### 3. Integrating Cosine Similarity with Flask
 **Problem:** Aligning data preprocessing, model loading, and real-time query handling created sync issues and potential crashes.
@@ -289,17 +261,11 @@ This approach transforms raw metadata (director, cast, genres) into intelligent,
 - Validated all form parameters server-side before database insertion.
 - Strengthened Flask route exception handling for stability.
 
-### 7. Performance Bottlenecks from API Calls
-**Problem:** Sequential external API calls increased page load times.
+### 7. TMDB Response Caching
+The `TMDBService` keeps cached responses in process memory for up to 24 hours. Cache behavior and performance have not been benchmarked.
 
-**Solution:**
-- Optimized request flow with efficient data batching.
-- Implemented a robust in-memory caching layer within the TMDBService class. This system stores API responses for 24 hours, significantly reducing redundant network requests.
-- Reduced redundant calls and implemented caching strategies where possible.
-- Improved user retention through faster load times.
-
-## ⚙️ Production Optimization & Scalability
-One of the most critical engineering decisions in this project was optimizing the recommendation pipeline for production deployment. By reducing model artifact size and implementing FAISS-based similarity indexing, the system was transformed from a research prototype into a scalable, real-time recommendation platform capable of operating efficiently under infrastructure constraints.
+## ⚙️ Recommendation Artifacts
+The application loads its preprocessed movie data, fitted vectorizer, TruncatedSVD transform, and FAISS index from the checked-in model artifacts. The repository does not include a reproducible benchmark for recommendation latency, memory consumption, or scaling capacity.
 
 ---
 
@@ -360,24 +326,21 @@ One of the most critical engineering decisions in this project was optimizing th
     TMDB_API_KEY=your_tmdb_api_key
     DATABASE_URL=postgresql://user:password@localhost/dbname
     FLASK_SECRET_KEY=your_secret_key
+    RATELIMIT_STORAGE_URI=memory://
     ```
+    For isolated local development, set `DATABASE_URL=sqlite:///local.db`; this creates a SQLite database under Flask's instance folder. `memory://` is suitable locally and does not share rate-limit counters between worker processes. TMDB search, trailers, and movie metadata also require `TMDB_API_KEY`. In production, use the PostgreSQL connection string for `DATABASE_URL` and a shared Redis URL for `RATELIMIT_STORAGE_URI`; never commit credentials.
 
 5.  **Initialize the Database**
     ```bash
-    flask db init
-    flask db migrate
     flask db upgrade
     ```
+    This applies the checked-in migrations, including the per-user movie-feedback table.
 
 6.  **Run the Application**
     ```bash
     flask run
     ```
-    Access the app at   <p align="center">
-  <a href="https://movies-recommender-system-kxlg.onrender.com/home">
-    <img src="https://img.shields.io/badge/LIVE-DEMO-red?style=for-the-badge&logo=render">
-  </a>
-</p>
+    Access the local app at http://127.0.0.1:5000. For the deployed app, use the verified Render link in the Demo section above.
 
 ---
 
